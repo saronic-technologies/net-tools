@@ -13,3 +13,6 @@ mod udp;
 pub use self::ip_family::IpFamily;
 #[cfg(not(wasm_browser))]
 pub use self::udp::{UdpSender, UdpSocket};
+
+#[cfg(unix)]
+pub use self::udp::set_socket_fd_tap_hook;

@@ -4,7 +4,7 @@ use std::{
     net::SocketAddr,
     num::NonZeroUsize,
     pin::Pin,
-    sync::{Arc, RwLock, RwLockReadGuard, TryLockError, atomic::AtomicBool},
+    sync::{Arc, OnceLock, RwLock, RwLockReadGuard, TryLockError, atomic::AtomicBool},
     task::{Context, Poll},
 };
 
@@ -13,7 +13,26 @@ use noq_udp::Transmit;
 use tokio::io::Interest;
 use tracing::{debug, trace, warn};
 
+#[cfg(unix)]
+use std::os::fd::{AsRawFd, RawFd};
+
 use super::IpFamily;
+
+/// Callback invoked with the raw fd of every UDP socket this crate binds.
+#[cfg(unix)]
+static SOCKET_FD_TAP_HOOK: OnceLock<Box<dyn Fn(RawFd) + Send + Sync>> = OnceLock::new();
+
+#[cfg(unix)]
+pub fn set_socket_fd_tap_hook(f: impl Fn(RawFd) + Send + Sync + 'static) {
+    let _ = SOCKET_FD_TAP_HOOK.set(Box::new(f));
+}
+
+#[cfg(unix)]
+fn run_socket_fd_tap_hook(fd: RawFd) {
+    if let Some(f) = SOCKET_FD_TAP_HOOK.get() {
+        f(fd);
+    }
+}
 
 /// Wrapper around a tokio UDP socket.
 #[derive(Debug)]
@@ -789,6 +808,10 @@ impl SocketState {
         // Binding must happen before calling noq, otherwise `local_addr`
         // is not yet available on all OSes.
         socket.bind(&addr.into())?;
+
+        // Trigger SOCKET_FD_TAP_HOOK with raw socket file descriptor
+        #[cfg(unix)]
+        run_socket_fd_tap_hook(socket.as_raw_fd());
 
         // Ensure nonblocking
         socket.set_nonblocking(true)?;
