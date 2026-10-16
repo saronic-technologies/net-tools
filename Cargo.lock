@@ -1225,7 +1225,7 @@ dependencies = [
 [[package]]
 name = "noq-udp"
 version = "1.0.1"
-source = "git+https://github.com/saronic-technologies/noq?rev=cb4b0abc1fd2fc18c8a43928bfaa8a3733a8523f#cb4b0abc1fd2fc18c8a43928bfaa8a3733a8523f"
+source = "git+https://github.com/saronic-technologies/noq?rev=35bc9e78c46aa83815b77f190070da97c6eff9ce#35bc9e78c46aa83815b77f190070da97c6eff9ce"
 dependencies = [
  "cfg_aliases",
  "libc",
